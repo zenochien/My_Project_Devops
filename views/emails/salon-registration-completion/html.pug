@@ -1,0 +1,18 @@
+html(lang="ja")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1.0")
+    meta(http-equiv="X-UA-Compatible" content="ie=edge")
+    include ../style.pug
+  body
+    p このたびはHAIRLIEにご登録いただきまして、誠にありがとうございます。
+    p お客様のサロン登録が完了いたしましたのでご連絡申し上げます。
+    p ご不明な点やご質問などございましたら、お気軽にカスタマーサポートまでお問い合せください。
+    br
+    p ◇登録内容
+    p サロン名： #{salon.get('salonName')}
+    p メールアドレス： #{user.get('email')}
+    div
+      span サロンページ：
+      a(href="https://dashboard.hairlie.jp/login") https://dashboard.hairlie.jp/login
+    include ../footer.pug

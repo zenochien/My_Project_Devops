@@ -1,0 +1,14 @@
+html(lang="ja")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1.0")
+    meta(http-equiv="X-UA-Compatible" content="ie=edge")
+    include ../style.pug
+  body
+    p このたびはHAIRLIEにご利用いただきまして、誠にありがとうございます。
+    br
+    p 下記のURLをクリックして、メールアドレス変更の手続きを完了してください。
+    a(href=customerBaseUrl+"/verifyNewEmail/" + token ) #{customerBaseUrl}/verifyNewEmail/#{token}
+    br
+    p ご不明な点やご質問などございましたら、お気軽にお問い合せください。
+    include ../footer.pug

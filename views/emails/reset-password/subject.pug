@@ -1,0 +1,15 @@
+- const userRole = user.get('role');
+- const hasSetPassFirstTime = user.get('hasSetPassFirstTime')
+
+if userRole === 'CUSTOMER'
+    ='[HAIRLIE]パスワード再設定のURLの送付(カスタマー用)'
+else
+  if userRole === 'STYLIST'
+    if !hasSetPassFirstTime
+      ='[HAIRLIE]パスワード設定のお願い'
+    else
+      ='[HAIRLIE]パスワード再設定のURLの送付'
+  else if hasSetPassFirstTime
+    ='[HAIRLIE]パスワード再設定のURLの送付'
+  else
+    ='[HAIRLIE]サロン登録のためのパスワード設定URLの送付'

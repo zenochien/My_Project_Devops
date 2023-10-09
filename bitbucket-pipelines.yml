@@ -1,0 +1,274 @@
+image: node:12.22
+
+definitions:
+  steps:
+    - step: &build
+        name: auto_build
+        image: public.ecr.aws/e2s7v1k5/auto-build-image
+        services:
+          - docker
+        caches:
+          - docker
+        script:
+          ## Before scripts
+          ### Clone submodule
+          - apk add openssh && git submodule update --init
+          ### Build cache images
+          - '[[ $TRACE ]] && docker images'
+          - docker build --target node_modules  -t node_modules_cache .
+          - docker build --target apispec       -t apispec_cache .
+
+          ## AutoBuild steps
+          - auto_build aws_configure
+          - auto_build docker_login
+          - auto_build
+
+          # Mirror image to production account
+          - |
+            export AUTO_DEPLOY_AWS_ACCOUNT_ID=$PRODUCTION_AWS_ACCOUNT_ID
+            export AUTO_DEPLOY_AWS_ACCESS_KEY_ID=$PRODUCTION_AWS_ACCESS_KEY_ID
+            export AUTO_DEPLOY_AWS_SECRET_ACCESS_KEY=$PRODUCTION_AWS_SECRET_ACCESS_KEY
+            auto_build aws_configure
+            auto_build docker_login
+            auto_build ensure_docker_image_registry
+          - |
+            export docker_registry="$AUTO_DEPLOY_AWS_ACCOUNT_ID.dkr.ecr.$AUTO_DEPLOY_AWS_REGION.amazonaws.com/$BITBUCKET_REPO_SLUG/master"
+            export DOCKER_REGISTRY=$docker_registry auto_build docker_login
+            docker tag $BITBUCKET_REPO_SLUG "$docker_registry:$(git rev-parse HEAD)"
+            docker push "$docker_registry:$(git rev-parse HEAD)"
+
+          ## After scripts
+    - step: &test
+        name: test
+        size: 2x
+        services:
+          - docker
+        script:
+          - |
+            [[ $TEST_DISABLED ]] && exit 0
+            export PATH="$PATH:$PWD/scripts/"
+          - |
+            curl -L "https://github.com/docker/compose/releases/download/1.27.4/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+            chmod +x /usr/local/bin/docker-compose
+            docker-compose up -d mongo mongo_init_replicaset
+          - |
+            ## To reduce build time, only build dependencies if not found
+            if [[ ! -d "c2c/notification-service-client/lib" ]] || [[ ! -d "c2c/payment-veritrans4g/dist" ]]; then
+              git submodule update --init
+              npm run preinstall
+            fi
+          - npm install --unsafe-perm --ignore-scripts
+          - npm run migrate
+          - npm rebuild --verbose sharp
+          # Run all tests
+          - npm run test
+## Enable if use docker cache to avoid conflict with docker cache from build job
+#        after-script:
+#          ## Remove all docker images to prevent Bitbucket to push to wrong cache
+#          ## This job use pull cache policy
+#          - docker-compose down
+#          - docker images | awk '{print$3}' | xargs docker rmi -f
+        caches:
+          - submodules
+          - node
+    - step: &code_quality
+        name: code_quality
+        script:
+          - "[[ $CODE_QUALITY_DISABLED ]] && exit 0"
+          - npm install --unsafe-perm --ignore-scripts
+          - npm run lint
+        caches:
+          - node
+    - step: &deploy
+        image: public.ecr.aws/e2s7v1k5/auto-deploy-image
+        services:
+          - docker
+        script:
+          ## Define variables
+          - export application_name=$BITBUCKET_REPO_SLUG
+          - export environment_name=$BITBUCKET_DEPLOYMENT_ENVIRONMENT
+          ## Set up infrastructure
+          - |
+            ### Create backend storage for Terraform
+            export bucket_name="$environment_name-$application_name-terraform"
+            (aws s3api create-bucket --bucket $bucket_name --region $AWS_REGION --create-bucket-configuration LocationConstraint=$AWS_REGION \
+            && aws s3api put-bucket-versioning --bucket $bucket_name --region $AWS_REGION --versioning-configuration Status=Enabled) || true
+
+            ### Apply Terraform
+            cd terraform || exit 1
+            terraform init \
+              --backend-config="bucket=$bucket_name" \
+              --backend-config="key=terraform" \
+              --backend-config="region=$AWS_REGION"
+            [[ $AUTO_DEPLOY_TERRAFORM_APPLY_DISABLED ]] || terraform apply --auto-approve \
+              -var "application_name=$application_name" \
+              -var "environment_name=$environment_name" \
+              -var "vpc_cidr=$VPC_CIDR" \
+              -var "vpc_private_subnets=$VPC_PRIVATE_SUBNETS" \
+              -var "vpc_public_subnets=$VPC_PUBLIC_SUBNETS" \
+              -var "mongodbatlas_destination_cidr_block=$MONGODBATLAS_CIDR" \
+              -var "mongodbatlas_vpc_peering_connection_id=$MONGODBATLAS_PEERING_CONNECTION_ID" \
+              -var "rabbitmq_user=$EB_SECRET_RABBITMQ_DEFAULT_USER" \
+              -var "rabbitmq_pass=$EB_SECRET_RABBITMQ_DEFAULT_PASS"
+            terraform output
+
+            ### Override AUTO_DEPLOY_* variables
+            export AUTO_DEPLOY_AWS_REGION=$(terraform output --raw aws_region)
+            export AUTO_DEPLOY_AWS_ACCOUNT_ID=$(terraform output --raw aws_account_id)
+            export AUTO_DEPLOY_VPC_ID=$(terraform output --raw vpc_id)
+            export AUTO_DEPLOY_VPC_SUBNETS=$(terraform output --raw private_subnet_ids)
+            export AUTO_DEPLOY_VPC_ELB_SUBNETS=$(terraform output --raw public_subnet_ids)
+            export AUTO_DEPLOY_AWS_SECURITY_GROUPS=${AUTO_DEPLOY_AWS_SECURITY_GROUPS:-"$(terraform output --raw app_sg_ids),$AUTO_DEPLOY_AWS_ADDITIONAL_SECURITY_GROUPS"}
+            ### Update application environment variables
+            export EB_SECRET_RABBITMQ_URL=$(terraform output --raw rabbitmq_url)
+          # pre-deploy
+          - |
+            export NAMESPACE=${BITBUCKET_REPO_SLUG}
+            export ENVIRONMENT=${BITBUCKET_DEPLOYMENT_ENVIRONMENT}
+          ## deploy
+          - auto_deploy ensure_awscli
+          - auto_deploy docker_login
+          - auto_deploy $AUTO_DEPLOY_TARGET
+  services:
+    docker:
+      memory: 3072
+  caches:
+    submodules: c2c
+    terraform-modules: terraform/.terraform/modules
+    terraform-providers: terraform/.terraform/providers
+
+pipelines:
+  pull-requests:
+    '**':
+      - parallel:
+          - step:
+              <<: *test
+          - step:
+              <<: *code_quality
+  branches:
+    develop:
+      - parallel:
+          - step:
+              name: build
+              <<: *build
+          - step:
+              <<: *test
+          - step:
+              <<: *code_quality
+      - step:
+          <<: *deploy
+          name: development
+          deployment: Development
+          image: public.ecr.aws/e2s7v1k5/auto-deploy-image:next
+
+    staging:
+      - parallel:
+          - step:
+              name: build
+              <<: *build
+          - step:
+              <<: *test
+          - step:
+              <<: *code_quality
+      - step:
+          <<: *deploy
+          name: staging
+          deployment: Staging
+
+    master:
+      - parallel:
+          - step:
+              name: build
+              <<: *build
+          - step:
+              <<: *test
+          - step:
+              <<: *code_quality
+      - step:
+          <<: *deploy
+          name: production
+          deployment: Production
+          trigger: manual
+
+    review/*:
+      - parallel:
+          - step:
+              name: build
+              <<: *build
+          - step:
+              <<: *test
+          - step:
+              <<: *code_quality
+      - step:
+          name: development
+          deployment: Development
+          image: public.ecr.aws/e2s7v1k5/auto-deploy-image
+          services:
+            - docker
+          script:
+            # pre-deploy
+            - |
+              export EB_DOCKER_V2=1
+              export NAMESPACE=${BITBUCKET_REPO_SLUG}
+              export ENVIRONMENT=${BITBUCKET_DEPLOYMENT_ENVIRONMENT}
+
+              ## to lowercase and replace / by - character
+              environment_slug=$BITBUCKET_BRANCH
+              environment_slug=$(echo "$environment_slug" | tr '[:upper:]' '[:lower:]')
+              environment_slug=${environment_slug//[\/]/-}
+              export EB_ENVIRONMENT="$environment_slug"
+              export EB_SECRET_PARSE_SERVER_DOMAIN_NAME="http://$EB_ENVIRONMENT.eba-hk2pzv2p.ap-northeast-1.elasticbeanstalk.com"
+              export EB_SECRET_PARSE_PUBLIC_SERVER_URL="http://$EB_ENVIRONMENT.eba-hk2pzv2p.ap-northeast-1.elasticbeanstalk.com/api"
+            ## deploy
+            - auto_deploy ensure_awscli
+            - auto_deploy docker_login
+            - auto_deploy $AUTO_DEPLOY_TARGET
+
+    # for testing Terraform on Development only
+    terraform:
+      - step:
+          name: deploy
+          deployment: Development
+          image: public.ecr.aws/e2s7v1k5/auto-deploy-image:next
+          caches:
+            - terraform-modules
+            - terraform-providers
+          script:
+            ## Define variables
+            - export application_name=$BITBUCKET_REPO_SLUG
+            - export environment_name=$BITBUCKET_DEPLOYMENT_ENVIRONMENT
+            ## Set up infrastructure
+            - |
+              ### Create backend storage for Terraform
+              export bucket_name="$environment_name-$application_name-terraform"
+              (aws s3api create-bucket --bucket $bucket_name --region $AWS_REGION --create-bucket-configuration LocationConstraint=$AWS_REGION \
+              && aws s3api put-bucket-versioning --bucket $bucket_name --region $AWS_REGION --versioning-configuration Status=Enabled) || true
+
+              ### Apply Terraform
+              cd terraform || exit 1
+              terraform init \
+                --backend-config="bucket=$bucket_name" \
+                --backend-config="key=terraform" \
+                --backend-config="region=$AWS_REGION"
+              [[ $AUTO_DEPLOY_TERRAFORM_APPLY_DISABLED ]] || terraform apply --auto-approve \
+                -var "application_name=$application_name" \
+                -var "environment_name=$environment_name" \
+                -var "vpc_cidr=$VPC_CIDR" \
+                -var "vpc_private_subnets=$VPC_PRIVATE_SUBNETS" \
+                -var "vpc_public_subnets=$VPC_PUBLIC_SUBNETS" \
+                -var "mongodbatlas_destination_cidr_block=$MONGODBATLAS_CIDR" \
+                -var "mongodbatlas_vpc_peering_connection_id=$MONGODBATLAS_PEERING_CONNECTION_ID" \
+                -var "rabbitmq_user=$EB_SECRET_RABBITMQ_DEFAULT_USER" \
+                -var "rabbitmq_pass=$EB_SECRET_RABBITMQ_DEFAULT_PASS"
+              terraform output
+
+              ### Override AUTO_DEPLOY_* variables
+              export AUTO_DEPLOY_AWS_REGION=$(terraform output --raw aws_region)
+              export AUTO_DEPLOY_AWS_ACCOUNT_ID=$(terraform output --raw aws_account_id)
+              export AUTO_DEPLOY_VPC_ID=$(terraform output --raw vpc_id)
+              export AUTO_DEPLOY_VPC_SUBNETS=$(terraform output --raw private_subnet_ids)
+              export AUTO_DEPLOY_VPC_ELB_SUBNETS=$(terraform output --raw public_subnet_ids)
+              export AUTO_DEPLOY_AWS_SECURITY_GROUPS=$(terraform output --raw app_sg_ids)
+              ### Update application environment variables
+              export EB_SECRET_RABBITMQ_URL=$(terraform output --raw rabbitmq_url)
+

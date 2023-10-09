@@ -1,0 +1,34 @@
+html(lang="ja")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1.0")
+    meta(http-equiv="X-UA-Compatible" content="ie=edge")
+    include ../style.pug
+  body
+    p このたびはHAIRLIEをご利用いただきまして、誠にありがとうございます。
+    br
+    p #{beforeTime}までに予約リクエストを承認してください。
+    p 
+      a(href=link) #{link}
+    p ＊施術開始時間の30分前までに予約リクエストを承認しない場合、自動キャンセルとなりますのでご注意ください。
+    br
+    p ▼予約内容▼
+    each booing, index in bookings
+      if(bookings.length > 1)
+        p #{index+1}■予約ID
+      else
+        p ■予約ID
+      p #{booing.bookingId}
+      p ■来店日時
+      p #{booing.serviceDateTime}
+      p ■サロン名
+      p #{booing.salonName}
+      p ■カスタマー名
+      p #{booing.customerFullName}
+      p ■メニュー
+      p #{booing.menusName}
+      p ■合計金額
+      p ￥#{booing.originalPrice} (税込) 
+      if (index < bookings.length - 1)
+        p ─────────────────────────────────
+    include ../footer.pug

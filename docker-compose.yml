@@ -1,0 +1,21 @@
+version: '2.2'
+
+services:
+  mongo:
+    image: mongo:4.4
+    ports:
+      - 27017:27017
+    entrypoint: ['/usr/bin/mongod', '--bind_ip_all', '--replSet', 'rs0']
+    cpus: .9
+
+  mongo_init_replicaset:
+    image: mongo:4.4
+    entrypoint:
+      [
+        '/bin/sh',
+        '-c',
+        'sleep 3 && mongo mongo:27017 --eval ''rs.initiate({_id : "rs0",members: [{_id : 0, host: "localhost:27017"}]})''',
+      ]
+    depends_on:
+      - mongo
+#    network_mode: 'host' # not work on Bitbucket pipeline

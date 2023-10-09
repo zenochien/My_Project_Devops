@@ -1,0 +1,16 @@
+html(lang="ja")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1.0")
+    meta(http-equiv="X-UA-Compatible" content="ie=edge")
+    include ../style.pug
+  body
+    p お客様よりお問い合わせありました。
+    p 以下より詳細を確認し対応してください。
+    br
+    p ◇お問い合わせ内容
+    p 名前： #{name}
+    p メールアドレス： #{email} 
+    p 電話番号： #{phoneNumber} 
+    p(class='content-container') お問い合わせ内容： #{contents} 
+    include ../footer.pug

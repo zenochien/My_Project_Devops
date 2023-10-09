@@ -1,0 +1,37 @@
+const Helper = require('../utils/helper');
+const chai = require('chai');
+var expect = chai.expect;
+const jm = require('js-meter');
+const fs = require('fs');
+const util = require('util');
+const { THUMBNAIL_SIZE } = require('../const/Constants');
+const _ = require('lodash');
+const sharp = require('sharp');
+
+describe('Test performance of generation thumbnails', () => {
+  let m;
+  beforeEach(function () {
+    const isPrint = true;
+    const isKb = true;
+    m = new jm({ isPrint, isKb });
+  });
+
+  afterEach(function () {
+    const meter = m.stop();
+  });
+
+  it('Using Sharp url resize', async () => {
+    const response = await Parse.Cloud.httpRequest({
+      url: 'https://hairlie-dev.s3.amazonaws.com/6c635b1247ca5714d7a68d7e2ff182db_SALON1jpg.jpg',
+    });
+
+    for (let i = 0; i < 100; i++) {
+      const resize = (size) => sharp(response.buffer).resize({ width: size, height: size, fit: 'inside' }).toBuffer();
+
+      // create thumbnails
+      await Promise.all([800, 600, 250].map(resize)).then(() => {
+        //console.log('complete');
+      });
+    }
+  });
+});

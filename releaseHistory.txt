@@ -1,0 +1,21 @@
+version 2.2.0
+  HRL-2139
+    functions/migrateBookingStatusExtend
+version 2.3.0
+  HRL-2178
+    functions/migrateSalonDataForOldStylist
+  HRL-2185
+    migrateStylistDataForOldRecommendation
+    migrateStylistStatusForOldPost
+version 2.4.0
+  HRL-2214
+    functions/migrateStatusMenuByCategoryPubslished
+  HRL-2228
+    functions/changeFormatCreatedAtUpdatedAt
+    functions/migratedSalonForSalonEarning
+    functions/migratePayoutIdChangeTranferFee
+version 2.5.0
+  HRL-2256
+    functions/getPressPosts
+    functions/migratedPressPostForStylist
+    merge branch release/2.5.0 in hairle-job

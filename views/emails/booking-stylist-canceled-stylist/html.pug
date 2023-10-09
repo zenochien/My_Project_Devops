@@ -1,0 +1,49 @@
+html(lang="ja")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1.0")
+    meta(http-equiv="X-UA-Compatible" content="ie=edge")
+    include ../style.pug
+  body
+    p このたびはHAIRLIEをご利用いただきまして、誠にありがとうございます。
+    br
+    p 予約は正常にキャンセルされました。
+    br
+    p 今回キャンセルされた予約内容は以下の通りです。
+    br
+    p ▼キャンセル内容▼
+    p ■予約ID
+    p #{booking.id}
+    p ■来店日時
+    p #{serviceDateTime}
+    p ■サロン名 
+    p #{salon.get('salonName')}
+    p ■地図
+      p
+        a(href=mapURL) #{address}
+    p ■メニュー
+    p #{menusName}
+    p ■施術時間(目安)
+    p #{booking.get('totalDuration')}分
+    p ■スタイリスト
+    p #{booking.get('stylist').get('nickName')}
+    p ■合計金額
+    p ￥#{originalPrice} (税込)
+    p ■クーポン利用
+      if (couponCode)
+        p  #{couponName}(#{couponCode})
+      else
+        p  なし
+    p ■クーポン値引金額
+      if (couponAmount)
+        p  ￥-#{couponAmount}
+      else
+        p  なし
+    p ＊クーポンでの値引き額はHAIRIEが金額負担しております。これによりあなたの売り上げが減ることはありません。
+    p ■お客様のお支払い予定金額(キャンセル料込)
+    p ￥#{canceledFee}(税込)
+    if booking.get('cancelNote')
+      br
+      p ▼キャンセル理由 ▼
+      p #{booking.get('cancelNote')}
+    include ../footer.pug

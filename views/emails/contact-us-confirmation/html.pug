@@ -1,0 +1,20 @@
+html(lang="ja")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1.0")
+    meta(http-equiv="X-UA-Compatible" content="ie=edge")
+    include ../style.pug
+  body
+    p このたびはHAIRLIEをご利用いただきまして、誠にありがとうございます。
+    br
+    p 以下の内容でお問い合わせを承りました。
+    p 担当者よりご連絡をいたしますので、今しばらくお待ちください。
+    br
+    p ◇お問い合わせ内容
+    p 名前： #{name}
+    p メールアドレス： #{email} 
+    p 電話番号： #{phoneNumber} 
+    p(class='content-container') お問い合わせ内容： #{contents} 
+    br
+    p しばらく経っても連絡がない場合は、お手数をおかけしますが再度お送りいただきますようお願いいたします。
+    include ../footer.pug

@@ -1,0 +1,12 @@
+{
+  "name": "apidoc-hairlie",
+  "version": "2.5.0",
+  "description": "API Document for Hairlie",
+  "title": "API Document for Hairlie",
+  "url": "http://localhost:1337/api/functions",
+  "order": [],
+  "template": {
+    "withCompare": true,
+    "withGenerator": true
+  }
+}

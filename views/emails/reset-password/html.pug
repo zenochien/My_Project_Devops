@@ -1,0 +1,34 @@
+html(lang="ja")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1.0")
+    meta(http-equiv="X-UA-Compatible" content="ie=edge")
+    include ../style.pug
+  body
+    - const userRole = user.get('role');
+    - const hasSetPassFirstTime = user.get('hasSetPassFirstTime')
+    if userRole === 'STYLIST'
+      if hasSetPassFirstTime
+        p このたびはHAIRLIEにご利用いただきまして、誠にありがとうございます。
+        p 下記のリンクをクリックし、パスワードを再設定してください。
+        a(href=link) #{link}
+        p 万が一URLが使用できない場合、URLをコピーして別のブラウザでお試しください。
+        br
+        p ご不明な点やご質問などございましたら、お気軽にお問い合せください。
+      else
+        p このたびはHAIRLIEにご利用いただきまして、誠にありがとうございます。
+        p 下記のURLよりパスワード設定をお願い致します。
+        a(href=link) #{link}
+        br
+        br
+        p ご不明な点やご質問などございましたら、お気軽にお問い合せください。
+    else if !hasSetPassFirstTime && userRole !== 'CUSTOMER'
+      p 登録に必要なパスワード設定用のURLをお送りいたします。
+      p 初回の登録を完了するため、下記のリンクをクリックし、パスワードを設定してください。
+      a(href=link) #{link}
+      p 万が一URLが使用できない場合、URLをコピーして別のブラウザでお試しください。
+    else
+      p 下記のリンクをクリックし、パスワードを再設定してください。
+      a(href=link) #{link}
+      p 万が一URLが使用できない場合、URLをコピーして別のブラウザでお試しください。
+    include ../footer.pug

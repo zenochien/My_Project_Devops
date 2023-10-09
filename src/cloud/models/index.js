@@ -1,0 +1,27 @@
+const models = {};
+module.exports = models;
+
+models.UserModel = require('./User');
+models.SalonModel = require('./Salon');
+models.ImageModel = require('./Image');
+models.CategoryModel = require('./Category');
+models.MenuModel = require('./Menu');
+models.StylistModel = require('./Stylist');
+models.ProductModel = require('./Product');
+models.PostModel = require('./Post');
+models.CustomerModel = require('./Customer');
+models.BookingModel = require('./Booking');
+models.EmailModel = require('./Email');
+models.VeriTransPaymentModel = require('./VeriTransPayment');
+models.PaymentModel = require('./Payment');
+models.ControllerBoardModel = require('./ControllerBoard');
+models.ClosingDateModel = require('./ClosingDate');
+models.NotificationModel = require('./Notification');
+models.ContactUsModel = require('./ContactUs');
+models.PrefectureModel = require('./Prefecture');
+models.ReviewModel = require('./Review');
+models.BannerModel = require('./Banner');
+models.BankModel = require('./Bank');
+models.HashtagModel = require('./Hashtag');
+models.HoldingCompanyModel = require('./HoldingCompany');
+models.PressPostModel = require('./PressPost');

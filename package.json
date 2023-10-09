@@ -1,0 +1,141 @@
+{
+  "name": "hairlie-server",
+  "version": "1.0.5",
+  "description": "Hairlie server",
+  "main": "./src/index.js",
+  "scripts": {
+    "start": "NODE_ENV=local node src/index.js",
+    "debug": "NODE_ENV=local node --inspect=0.0.0.0:9229 src/index.js",
+    "apidoc": "apidoc -i ./apidoc -o ./apidoc/output",
+    "test": "NODE_ENV=test node japaFile.js",
+    "lint": "eslint --fix \"./src/**/*.js\" \"./migrations/*.js\"",
+    "migrate": "node -r dotenv/config scripts/migrate.js dotenv_config_path=.env",
+    "version": "auto-changelog -p && git add CHANGELOG.md",
+    "postversion": "git push --atomic origin $(git rev-parse --abbrev-ref HEAD) $(git describe --abbrev=0)",
+    "changelog": "mkdir -p changelog && node_modules/showdown/bin/showdown.js makehtml -i CHANGELOG.md -o changelog/index.html",
+    "install:payment-veritrans4g": "cd ./c2c/payment-veritrans4g && npm install --unsafe-perm",
+    "install:notification-service-client": "cd c2c/notification-service-client && npm install --unsafe-perm && npm run build && npm prune --production",
+    "preinstall": "npx --package npm-run-all run-p install:**"
+  },
+  "auto-changelog": {
+    "hideCredit": true,
+    "output": "CHANGELOG.md",
+    "package": true,
+    "template": "changelog-template.hbs",
+    "handlebarsSetup": "changelog-custom-hbs.js",
+    "commitLimit": false,
+    "unreleased": false,
+    "issueUrl": "https://c2cdoc.atlassian.net/browse/{id}",
+    "replaceText": {
+      "^[Ff]eat\\(+(.+)\\)+:": "**$1**:",
+      "^[Ff]ix\\(+(.+)\\)+:": "**$1**:",
+      "^[Bb]reak\\(+(.+)\\)+:": "**$1**:",
+      "^[Cc]hore\\(+(.+)\\)+:": "**$1**:",
+      "^[Dd]ocs\\(+(.+)\\)+:": "docs **$1**:",
+      "([A-Z]+-\\d{1,5})": "[`$1`](https://c2cdoc.atlassian.net/browse/$1)"
+    },
+    "includeBranch": [
+      "develop",
+      "master"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@bitbucket.org:hidesignsJP/hairlie-server.git"
+  },
+  "pre-commit": [
+    "lint",
+    "apidoc"
+  ],
+  "husky": {
+    "hooks": {
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS",
+      "pre-commit": "lint-staged"
+    }
+  },
+  "author": "",
+  "license": "ISC",
+  "homepage": "https://bitbucket.org/hidesignsJP/hairlie-server#readme",
+  "dependencies": {
+    "@opentelemetry/api": "^1.0.3",
+    "@opentelemetry/exporter-prometheus": "^0.27.0",
+    "@opentelemetry/metrics": "^0.24.0",
+    "@opentelemetry/sdk-metrics-base": "^0.27.0",
+    "amqp-connection-manager": "^3.7.0",
+    "amqplib": "^0.8.0",
+    "axios": "^0.20.0",
+    "body-parser": "^1.19.0",
+    "chai": "^4.3.3",
+    "credit-card-type": "^8.3.0",
+    "dotenv": "^8.2.0",
+    "email-templates": "^7.1.0",
+    "express": "^4.17.1",
+    "helmet": "^3.23.3",
+    "js-meter": "^1.1.4",
+    "json-2-csv": "^3.14.4",
+    "jsonwebtoken": "^8.5.1",
+    "limax": "^3.0.0",
+    "lodash": "^4.17.20",
+    "mime": "^2.4.6",
+    "moment": "^2.27.0",
+    "moment-timezone": "^0.5.31",
+    "multer": "^1.4.2",
+    "nanoid": "^3.3.2",
+    "node-schedule": "^1.3.2",
+    "nodemailer": "^6.4.11",
+    "parse-dashboard": "^2.1.0",
+    "parse-server": "4.5.0",
+    "payment-veritrans4g": "file://./c2c/payment-veritrans4g",
+    "prom-client": "^13.1.0",
+    "pug": "^3.0.0",
+    "response-time": "^2.3.2",
+    "sharp": "^0.27.2",
+    "showdown": "^1.9.1",
+    "uuid": "^8.3.2",
+    "yup": "^0.29.3"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^12.0.1",
+    "@commitlint/config-conventional": "^12.0.1",
+    "@types/email-templates": "^7.1.0",
+    "@types/express": "^4.17.8",
+    "@types/lodash": "^4.14.161",
+    "@types/moment": "^2.13.0",
+    "@types/moment-timezone": "^0.5.30",
+    "@types/nodemailer": "^6.4.0",
+    "@types/parse": "^2.12.5",
+    "@types/pug": "^2.0.4",
+    "@types/yup": "^0.29.6",
+    "apidoc": "^0.25.0",
+    "auto-changelog": "^2.2.1",
+    "csv-parse": "^4.16.0",
+    "eslint": "^7.8.1",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-plugin-prettier": "^3.1.4",
+    "eslint-plugin-sonarjs": "^0.5.0",
+    "faker": "^5.5.3",
+    "husky": "^4.3.8",
+    "japa": "^4.0.0",
+    "lint-staged": "^10.5.4",
+    "nodemon": "^2.0.4",
+    "pre-commit": "^1.2.2",
+    "prettier": "^2.1.1"
+  },
+  "prettier": {
+    "semi": true,
+    "trailingComma": "all",
+    "singleQuote": true,
+    "bracketSpacing": true,
+    "printWidth": 120,
+    "tabWidth": 2,
+    "useTabs": false,
+    "endOfLine": "lf",
+    "arrowParens": "always"
+  },
+  "lint-staged": {
+    "*.js": [
+      "npm run lint",
+      "git add ."
+    ]
+  }
+}
